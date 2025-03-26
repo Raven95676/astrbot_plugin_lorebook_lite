@@ -1,9 +1,7 @@
 # astrbot_plugin_lorebook_lite
 
-> [!caution]
-> run_code块允许执行任意代码，请勿随意导入带有run_code块的lorebook。
 
-AstrBot 的 lorebook 插件。
+AstrBot 的 lorebook 插件，支持自定义触发器、变量、逻辑、占位符等。
 
 ## 语法讲解
 
@@ -50,8 +48,6 @@ permissions:
 ```
 
 设定哪些用户可以触发哪些触发器。如果没有设定，默认该用户可触发所有触发器。
-
-注：不止用户名，塞占位符也行。
 
 **世界状态：**
 
@@ -127,41 +123,6 @@ position: 插入位置，可选值：
 - "user_end": 用户消息后。
 
 content: 插入到上下文的内容，支持多行文本。
-
-**代码执行器：**
-
-```yaml
-code_run:
-  - name: "唯一标识符"
-    type: "触发类型"
-    match: "匹配规则"
-    priority: 10
-    block: true
-    probability: 0.3
-    code: |
-      多行Python代码
-      什么都能塞
-```
-
-name: 代码执行器的唯一标识符。
-
-type: 触发类型，同 trigger。
-
-match: 匹配规则，同 trigger。
-
-priority: 触发优先级，同 trigger。
-
-block: 是否阻断后续触发器。
-
-probability: 触发概率（0.0 到 1.0）。
-
-code: 执行的 Python 代码，支持多行。
-
-特殊说明: 
-- code_run 的`return`会存储为变量，变量名为 code_run 的 name 值。
-- code_run 总是优先于 trigger 执行。
-
-
 
 **作者注释：**
 
