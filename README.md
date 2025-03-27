@@ -171,9 +171,9 @@ position: 插入位置，同 trigger。
 **时间相关：**
 
 ```
-{buildin::time}                  - 返回当前世界时间（YYYY-MM-DD HH:MM:SS）
+{buildin::time}                  - 返回当前世界时间（YYYY-MM-DD HH:MM）
 {buildin::time(date)}            - 返回当前世界日期（YYYY-MM-DD）
-{buildin::time(time)}            - 返回当前世界时间（HH:MM:SS）
+{buildin::time(time)}            - 返回当前世界时间（HH:MM）
 {buildin::time(year)}            - 返回当前世界年份（YYYY）
 {buildin::time(month)}           - 返回当前世界月份（MM）
 {buildin::time(day)}             - 返回当前世界天（DD）
@@ -239,7 +239,7 @@ position: 插入位置，同 trigger。
 下面是一个实际应用示例：
 
 ```
-{logic::if({var::get(global.weather)} == "雨天", 
+{logic::if({var::get(world.weather)} == "雨天", 
     今天是{buildin::time(date)}，外面正在下雨，记得带伞, 
     今天是{buildin::time(date)}，天气不错
 )}
