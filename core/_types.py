@@ -12,15 +12,12 @@ class Trigger:
     content: str = ""
     match: str | None = None
     conditional: str | None = None
-    recursive_scan: bool = False
-    recursion_depth: int = 0
     priority: int = 0
     block: bool = False
     use_logic: bool = True
     position: str = "sys_start"
     probability: float = 1.0
     actions: list[str] = field(default_factory=list)
-    _last_triggered: int = field(default_factory=lambda: int(datetime.now().timestamp()), repr=False)
 
     def __post_init__(self):
         self.probability = max(0, min(self.probability, 1))
@@ -30,17 +27,6 @@ class Trigger:
 
         if self.type not in ["regex", "keywords", "listener"]:
             self.type = "keywords"
-
-    @property
-    def last_triggered(self):
-        """返回上次触发的时间戳并更新"""
-        self._last_triggered = int(datetime.now().timestamp())
-        return self._last_triggered
-
-    @last_triggered.setter
-    def last_triggered(self, value):
-        """设置上次触发的时间戳"""
-        self._last_triggered = value
 
 
 @dataclass
