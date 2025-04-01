@@ -1,0 +1,48 @@
+world_state:
+  total_draws: 0
+
+user_state:
+  - name: "draw_stats"
+    variables:
+      - user_draws: 0
+      - last_draw: ""
+
+trigger:
+  - name: "draw_lot"
+    type: "keywords"
+    match: "求签,抽签~统计"
+    priority: 10
+    block: true
+    probability: 1.0
+    position: "sys_end"
+    content: >
+      用户{buildin::sender_name}在{buildin::time(date)}来到庙中虔诚抽签。
+      用户抽到了一支签：{var::set(draw_stats.last_draw,{buildin::random(上上签,上签,中签,下签,下下签)})}。
+      解签如下：
+      {logic::if({var::get(draw_stats.last_draw)} == 上上签,此签大吉大利，诸事顺遂，贵人相助，前程似锦。,
+        {logic::if({var::get(draw_stats.last_draw)} == 上签,此签吉祥如意，稳步前进，努力可成。,
+          {logic::if({var::get(draw_stats.last_draw)} == 中签,此签中吉中利，前程似锦，财运亨通，万事如意。,
+            {logic::if({var::get(draw_stats.last_draw)} == 下签,此签平平常常，需谨慎行事，不可急进。,
+              此签凶险异常，凡事小心，切勿轻举妄动。
+            )}
+          )}
+        )}
+      )}
+      这是用户第{var::set(draw_stats.user_draws,{var::add({var::get(draw_stats.user_draws)},1)})}次抽签。
+      根据上述结果，为用户生成回应。
+    actions:
+      - "{var::set(world.total_draws, {var::add({var::get(world.total_draws)},1)})}"
+
+  - name: "check_draw_stats"
+    type: "keywords"
+    match: "抽签统计"
+    priority: 9
+    block: true
+    probability: 1.0
+    position: "sys_end"
+    content: |
+      当前时间：{buildin::time}
+      全局抽签总次数：{var::get(world.total_draws)}
+      用户的抽签次数：{var::get(draw_stats.user_draws)}
+      用户上次的签是：{var::get(draw_stats.last_draw)}
+      根据上述结果，为用户生成回应。

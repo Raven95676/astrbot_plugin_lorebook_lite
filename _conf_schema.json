@@ -1,0 +1,18 @@
+{
+  "lorebook_name": {
+    "description": "激活的LoreBook文件名（不含.yaml）",
+    "type": "string",
+    "hint":"务必保证已提前将其放置至data/lorebooks/目录下",
+    "default": "draw_lot"
+  },
+  "scan_depth": {
+    "description": "扫描深度",
+    "type": "int",
+    "default": 1
+  },
+  "include_ai": {
+    "description": "是否包含AI对话",
+    "type": "bool",
+    "default": false
+  }
+}

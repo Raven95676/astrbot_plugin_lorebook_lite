@@ -1,0 +1,19 @@
+trigger:
+  - name: "dice"
+    type: "keywords"
+    match: "roll"
+    priority: 10
+    block: true
+    probability: 1.0
+    position: "sys_end"
+    content: >
+      {buildin::random(3d8)}
+      {buildin::random(5d20)}
+      {buildin::random(2d6+3)}
+      {buildin::random(1d10-2)}
+      {buildin::random(4d6k3)}
+      {buildin::random(5d10l2)}
+      {buildin::random(2d20u15)}
+      {buildin::random(3d6b3)}
+      {buildin::random(1d20adv)}
+      {buildin::random(2d10dis)}
