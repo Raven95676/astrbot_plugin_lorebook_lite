@@ -1,8 +1,5 @@
 # astrbot_plugin_lorebook_lite
 
-> [!note]
-> 如遇重载插件后Lorebook内容未正确插入上下文的情况，建议重启Astrbot后重试。
-
 AstrBot 的 lorebook 插件，支持自定义触发器、变量、逻辑、占位符等。
 
 本插件依赖：

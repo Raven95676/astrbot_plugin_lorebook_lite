@@ -15,7 +15,7 @@ from .core._types import LoreResult  # type: ignore
 from .core.parser import LoreParser  # type: ignore
 
 
-@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.0.1")
+@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.0")
 class LorePlugin(Star):
     """Lorebook插件，用于根据预设规则处理聊天内容并修改LLM请求"""
 
@@ -136,7 +136,7 @@ class LorePlugin(Star):
 
         logger.debug(str(parser))
 
-    @filter.on_llm_request()
+    @filter.on_llm_request(priority=1)
     async def on_llm_req(self, event: AstrMessageEvent, request: ProviderRequest):
         """在LLM请求前处理，插入Lore规则匹配结果"""
         umo = event.unified_msg_origin
