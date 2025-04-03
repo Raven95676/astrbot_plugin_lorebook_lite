@@ -15,7 +15,7 @@ from .core._types import LoreResult  # type: ignore
 from .core.parser import LoreParser  # type: ignore
 
 
-@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.0")
+@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.1")
 class LorePlugin(Star):
     """Lorebook插件，用于根据预设规则处理聊天内容并修改LLM请求"""
 
