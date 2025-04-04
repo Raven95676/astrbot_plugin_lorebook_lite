@@ -3,6 +3,7 @@ import random
 import re
 from collections import deque
 from datetime import datetime
+from functools import lru_cache
 from typing import Any
 
 from kwmatcher import AhoMatcher
@@ -203,6 +204,7 @@ class LoreParser:
 
         return text
 
+    @lru_cache(maxsize=128)
     def _split_args(self, args_str: str) -> list[str]:
         """切分参数字符串，支持引号保护。
 

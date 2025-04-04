@@ -1,5 +1,6 @@
 import random
 import re
+from functools import lru_cache
 
 from astrbot.api import logger
 
@@ -56,6 +57,7 @@ class RandomHandler:
                 except Exception as e:
                     return f"参数无效: {e}"
 
+    @lru_cache(maxsize=128)
     def _is_num(self, s: str) -> bool:
         """检查字符串是否可以转换为整数（包括负数）
 

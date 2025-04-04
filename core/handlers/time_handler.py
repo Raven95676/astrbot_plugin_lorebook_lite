@@ -1,7 +1,8 @@
 from datetime import datetime
+from functools import lru_cache
 from typing import Any
 
-from dateutil import relativedelta
+from dateutil import relativedelta  # type: ignore
 
 # 定义不同时间格式的格式化字符串
 TIME_FORMATS = {
@@ -144,6 +145,38 @@ class TimeHandler:
             case _:
                 return "时间增量输入类型无效"
 
+    @lru_cache(maxsize=64)
+    def _format_time_difference(self, seconds: float, is_past: bool) -> str:
+        """格式化时间差异为人性化字符串
+
+        Args:
+            seconds: 时间差异（秒）
+            is_past: 是否是过去时间
+
+        Returns:
+            人性化的时间差异描述
+        """
+        suffix = "前" if is_past else "后"
+        seconds = abs(seconds)
+
+        if seconds < 60:
+            return "刚刚"
+        elif seconds < 3600:  # 1小时内
+            minutes = int(seconds / 60)
+            return f"{minutes}分钟{suffix}"
+        elif seconds < 86400:  # 24小时内
+            hours = int(seconds / 3600)
+            return f"{hours}小时{suffix}"
+        elif seconds < 2592000:  # 约30天内
+            days = int(seconds / 86400)
+            return f"{days}天{suffix}"
+        elif seconds < 31536000:  # 1年内
+            months = int(seconds / 2592000)
+            return f"{months}个月{suffix}"
+        else:
+            years = int(seconds / 31536000)
+            return f"{years}年{suffix}"
+
     def _get_idle_duration(self, times: dict[str, datetime]) -> str:
         """计算并返回人性化的空闲时间字符串
 
@@ -159,29 +192,6 @@ class TimeHandler:
 
         # 确定是过去还是未来
         is_past = idle_seconds > 0
-        suffix = "前" if is_past else "后"
 
-        idle_seconds = abs(idle_seconds)
-
-        if is_past:
-            delta = relativedelta.relativedelta(times["before"], times["after"])
-        else:
-            delta = relativedelta.relativedelta(times["after"], times["before"])
-
-        if idle_seconds < 60:
-            return "刚刚"
-        elif idle_seconds < 3600:  # 1小时内
-            minutes = delta.minutes
-            return f"{minutes}分钟{suffix}"
-        elif idle_seconds < 86400:  # 24小时内
-            hours = delta.hours
-            return f"{hours}小时{suffix}"
-        elif idle_seconds < 2592000:  # 约30天内
-            days = delta.days
-            return f"{days}天{suffix}"
-        elif idle_seconds < 31536000:  # 1年内
-            months = delta.months + delta.years * 12
-            return f"{months}个月{suffix}"
-        else:
-            years = delta.years
-            return f"{years}年{suffix}"
+        # 使用可缓存的辅助方法来格式化时间差异
+        return self._format_time_difference(idle_seconds, is_past)
