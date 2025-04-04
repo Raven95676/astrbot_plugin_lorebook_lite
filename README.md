@@ -13,6 +13,16 @@ AstrBot 的 lorebook 插件，支持自定义触发器、变量、逻辑、占�
 
 建议在使用前先阅读[YAML 入门教程](https://www.runoob.com/w3cnote/yaml-intro.html)
 
+## 近期更改（0.1.1 - 0.1.2）
+
+- 优化处理器和解析器性能
+- 实现作用域继承与变量值占位符解析
+- 添加非逻辑
+- 按会话、人格隔离lorebook
+- 添加重置lorebook功能
+- 优化解析器触发逻辑和占位符错误处理
+- 修复事件属性类型问题
+
 ## 使用方法
 
 编写你自己的 Lorebook yaml 文件，然后放到`data/lorebooks/`目录下。在插件配置中输入需要激活的 yaml 文件名（不含`.yaml`）。
