@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any
 
 
@@ -12,6 +13,7 @@ class VarHandler:
         """
         self.parser = parser
 
+    @lru_cache(maxsize=64)
     def _get_scope_key(self, scope: str) -> str:
         """获取作用域键
 
@@ -24,12 +26,13 @@ class VarHandler:
         scope = self.parser.parse_placeholder(scope)
         scope_key = scope if scope == "world" else f"{self.parser.sender}:{scope}"
 
-        # 确保作用域存在
+        # 如果作用域不存在，则创建并复制对应作用域的变量
         if scope_key not in self.parser._vars:
-            self.parser._vars[scope_key] = {}
+            self.parser._vars[scope_key] = self.parser._vars.get(scope, {}).copy()
 
         return scope_key
 
+    @lru_cache(maxsize=128)
     def _parse_var_scope(self, var: str, default_scope: str) -> tuple[str, str]:
         """解析变量的作用域和名称
 
@@ -73,22 +76,9 @@ class VarHandler:
                 target_scope, var_name = self._parse_var_scope(args[0], scope)
                 return str(self._get_var(var_name, target_scope))
 
-            case ("get", 2):
-                # 获取变量值(第一个参数是变量名，第二个参数是作用域)
-                var_name = args[0]
-                target_scope = args[1]
-                return str(self._get_var(var_name, target_scope))
-
             case ("del", 1):
                 # 删除变量
                 target_scope, var_name = self._parse_var_scope(args[0], scope)
-                self._del_var(var_name, target_scope)
-                return ""
-
-            case ("del", 2):
-                # 删除变量(第一个参数是变量名，第二个参数是作用域)
-                var_name = args[0]
-                target_scope = args[1]
                 self._del_var(var_name, target_scope)
                 return ""
 
@@ -134,7 +124,9 @@ class VarHandler:
         """
         var_name = self.parser.parse_placeholder(var_name)
         scope_key = self._get_scope_key(scope)
-        return self.parser._vars[scope_key].get(var_name, "")
+        return self.parser.parse_placeholder(
+            self.parser._vars[scope_key].get(var_name, "")
+        )
 
     def _set_var(self, var_name: str, value: Any, scope: str = "world") -> str:
         """设置变量值
@@ -164,6 +156,7 @@ class VarHandler:
         scope_key = self._get_scope_key(scope)
         self.parser._vars[scope_key].pop(var_name, None)
 
+    @lru_cache(maxsize=256)
     def _get_num(self, arg: str, scope: str = "world") -> int | float | str:
         """获取数字值
 

@@ -15,7 +15,7 @@ from .core._types import LoreResult  # type: ignore
 from .core.parser import LoreParser  # type: ignore
 
 
-@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.1")
+@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.2")
 class LorePlugin(Star):
     """Lorebook插件，用于根据预设规则处理聊天内容并修改LLM请求"""
 
@@ -78,6 +78,10 @@ class LorePlugin(Star):
             logger.error(f"无法加载lorebook配置: {e!s}")
             self.lorebook = None
 
+    def _get_session_key(self, umo: str, persona_id: str | None) -> str:
+        """生成会话隔离的键值"""
+        return f"{umo}:{persona_id if persona_id else 'default'}"
+
     async def _get_curr_persona(self, umo: str):
         """获取当前会话使用的人格ID和人格对象"""
         curr_cid = await self.context.conversation_manager.get_curr_conversation_id(umo)
@@ -104,25 +108,57 @@ class LorePlugin(Star):
 
         return persona_id, persona
 
+    async def _restore_persona(self, umo: str):
+        """还原人格配置"""
+        persona_id, _ = await self._get_curr_persona(umo)
+        if persona_id and persona_id in self.persona_bak:
+            for p in self.context.provider_manager.personas:
+                if p["name"] == persona_id:
+                    p["prompt"] = self.persona_bak[persona_id]["prompt"]
+                    break
+            logger.debug(f"lorebook | {umo} | 还原人格 {persona_id}")
+
+    def _clear_session_results(self, session_key: str):
+        """清理会话结果缓存"""
+        if session_key in self.res_map:
+            self.res_map[session_key].clear()
+            logger.debug(f"lorebook | {session_key} | 清除lorebook缓存")
+
+    @filter.command("reset")
+    async def reset(self, event: AstrMessageEvent):
+        """重置lorebook插件"""
+        umo = str(event.unified_msg_origin)
+        persona_id, _ = await self._get_curr_persona(umo)
+        session_key = self._get_session_key(umo, persona_id)
+
+        if session_key in self.lore_sessions:
+            del self.lore_sessions[session_key]
+            logger.debug(f"lorebook | {session_key} | 重置lorebook解析器")
+
+        self._clear_session_results(session_key)
+        await self._restore_persona(umo)
+
     @filter.event_message_type(EventMessageType.ALL)
     async def on_message(self, event: AstrMessageEvent):
         """处理所有消息事件，计算Lore规则匹配结果"""
         if not self.lorebook:
             return
 
-        umo = event.unified_msg_origin
+        umo = str(event.unified_msg_origin)
+        persona_id, _ = await self._get_curr_persona(umo)
+        session_key = self._get_session_key(umo, persona_id)
 
         # 为每个会话创建一个独立的解析器
-        if umo not in self.lore_sessions:
-            self.lore_sessions[umo] = LoreParser(self.lorebook, self.scan_depth)
+        if session_key not in self.lore_sessions:
+            self.lore_sessions[session_key] = LoreParser(self.lorebook, self.scan_depth)
 
         # 设置解析器的发送者信息
-        parser = self.lore_sessions[umo]
-        parser.sender = event.get_sender_id()
-        parser.sender_name = event.get_sender_name() or event.get_sender_id()
+        parser = self.lore_sessions[session_key]
+        parser.sender = str(event.get_sender_id())
+        parser.sender_name = str(event.get_sender_name()) or str(event.get_sender_id())
 
         # 处理消息文本
-        msg = event.get_message_str()
+        msg = str(event.get_message_str())
         msg_clean = " ".join(msg.split())
         parser.messages.append(msg_clean)
 
@@ -130,40 +166,42 @@ class LorePlugin(Star):
         res = parser.process_chat()
 
         # 初始化结果队列（如果不存在）
-        if umo not in self.res_map:
-            self.res_map[umo] = deque()
-        self.res_map[umo].append(res)
+        if session_key not in self.res_map:
+            self.res_map[session_key] = deque()
+        self.res_map[session_key].append(res)
 
         logger.debug(str(parser))
 
     @filter.on_llm_request(priority=1)
     async def on_llm_req(self, event: AstrMessageEvent, request: ProviderRequest):
         """在LLM请求前处理，插入Lore规则匹配结果"""
-        umo = event.unified_msg_origin
+        umo = str(event.unified_msg_origin)
+        persona_id, persona = await self._get_curr_persona(umo)
+        session_key = self._get_session_key(umo, persona_id)
 
-        if umo not in self.res_map:
+        if session_key not in self.res_map:
             return
 
-        # 获取会话正在使用的人格
-        _, persona = await self._get_curr_persona(umo)
-
         # 获取当前会话的所有处理结果
-        results = list(self.res_map[umo])
-        logger.debug(f"lorebook | {umo} | {results}")
+        results = list(self.res_map[session_key])
+        logger.debug(f"lorebook | {session_key} | {results}")
 
         # 合并所有结果中的提示内容
-        sys_start = "\n".join(
-            [line for res in results if res.sys_start for line in res.sys_start]
-        )
-        user_start = "\n".join(
-            [line for res in results if res.user_start for line in res.user_start]
-        )
-        sys_end = "\n".join(
-            [line for res in results if res.sys_end for line in res.sys_end]
-        )
-        user_end = "\n".join(
-            [line for res in results if res.user_end for line in res.user_end]
-        )
+        sys_start_lines = []
+        user_start_lines = []
+        sys_end_lines = []
+        user_end_lines = []
+
+        for res in results:
+            sys_start_lines.extend(res.sys_start)
+            user_start_lines.extend(res.user_start)
+            sys_end_lines.extend(res.sys_end)
+            user_end_lines.extend(res.user_end)
+
+        sys_start = "\n".join(sys_start_lines)
+        user_start = "\n".join(user_start_lines)
+        sys_end = "\n".join(sys_end_lines)
+        user_end = "\n".join(user_end_lines)
 
         # 将处理结果插入到LLM请求中
         if sys_start and persona:
@@ -178,25 +216,16 @@ class LorePlugin(Star):
     @filter.on_llm_response()
     async def on_llm_res(self, event: AstrMessageEvent, response: LLMResponse):
         """在LLM响应后处理"""
-        umo = event.unified_msg_origin
+        umo = str(event.unified_msg_origin)
+        persona_id, _ = await self._get_curr_persona(umo)
+        session_key = self._get_session_key(umo, persona_id)
 
         # 添加Bot回复到消息历史
-        if umo in self.lore_sessions and self.config.get("include_ai", False):
-            msg = response.completion_text
+        if session_key in self.lore_sessions and self.config.get("include_ai", False):
+            msg = str(response.completion_text)
             msg_clean = " ".join(msg.split())
-            self.lore_sessions[umo].messages.append(msg_clean)
+            self.lore_sessions[session_key].messages.append(msg_clean)
 
         # 清除结果缓存并还原人格
-        if umo in self.res_map:
-            self.res_map[umo].clear()
-
-            # 获取当前人格并还原
-            persona_id, _ = await self._get_curr_persona(umo)
-            if persona_id and persona_id in self.persona_bak:
-                # 找到对应的persona对象并还原prompt
-                for p in self.context.provider_manager.personas:
-                    if p["name"] == persona_id:
-                        p["prompt"] = self.persona_bak[persona_id]["prompt"]
-                        break
-
-            logger.debug(f"lorebook | {umo} | 清除lorebook缓存并还原人格 {persona_id}")
+        self._clear_session_results(session_key)
+        await self._restore_persona(umo)

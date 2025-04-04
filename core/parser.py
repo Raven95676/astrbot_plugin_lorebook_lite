@@ -3,9 +3,12 @@ import random
 import re
 from collections import deque
 from datetime import datetime
+from functools import lru_cache
 from typing import Any
 
 from kwmatcher import AhoMatcher
+
+from astrbot.api import logger
 
 from ._types import LoreResult, Trigger  # type: ignore
 from .handlers.logic_handler import LogicHandler  # type: ignore
@@ -51,7 +54,7 @@ class LoreParser:
         self.messages: deque[str] = deque(maxlen=scan_depth)
 
         # 初始化变量存储
-        self._vars: dict[str, Any] = {}
+        self._vars: dict[str, dict[str, Any]] = {}
         self._vars["world"] = copy.deepcopy(self._lorebook.get("world_state", {}))
         self._vars.update(
             {
@@ -122,41 +125,6 @@ class LoreParser:
         """返回解析器的官方字符串表示"""
         return self.__str__()
 
-    def _parse_dict(self, d: Any) -> Any:
-        """递归解析字典中所有键和值中的占位符
-
-        Args:
-            d: 要解析的字典或其他值
-
-        Returns:
-            解析后的字典或值
-        """
-        if not isinstance(d, dict):
-            return self.parse_placeholder(str(d)) if isinstance(d, str) else d
-
-        parsed_dict = {}
-        for key, value in d.items():
-            parsed_key = self.parse_placeholder(str(key))
-            if isinstance(value, dict):
-                parsed_value = self._parse_dict(value)
-            elif isinstance(value, list):
-                parsed_value = [
-                    self._parse_dict(item)
-                    if isinstance(item, dict)
-                    else self.parse_placeholder(str(item))
-                    if isinstance(item, str)
-                    else item
-                    for item in value
-                ]
-            else:
-                parsed_value = (
-                    self.parse_placeholder(str(value))
-                    if isinstance(value, str)
-                    else value
-                )
-            parsed_dict[parsed_key] = parsed_value
-        return parsed_dict
-
     def parse_placeholder(self, text: str) -> str:
         """解析文本中的占位符，支持多阶段解析
 
@@ -209,7 +177,8 @@ class LoreParser:
 
                 # 默认情况：保持原样
                 return match.group(0)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"解析占位符时出现错误: {e!s}, 占位符: {match.group(0)}")
                 return match.group(0)
 
         # 阶段1: 处理基础内置函数
@@ -235,6 +204,7 @@ class LoreParser:
 
         return text
 
+    @lru_cache(maxsize=128)
     def _split_args(self, args_str: str) -> list[str]:
         """切分参数字符串，支持引号保护。
 
@@ -266,8 +236,13 @@ class LoreParser:
             else:
                 current.append(c)
 
+        # 确保添加最后一个参数
         if current:
             args.append("".join(current).strip())
+
+        # 如果解析结束时仍在引号内，记录警告
+        if in_quotes:
+            logger.warning(f"引号不匹配: {args_str}")
 
         # 移除每个参数可能残留的首尾引号
         for i in range(len(args)):
@@ -301,15 +276,23 @@ class LoreParser:
         for message in messages:
             # 正则表达式匹配
             if trigger.type == "regex" and trigger.match:
-                if bool(re.search(trigger.match, message)):
-                    return True
+                try:
+                    if bool(re.search(trigger.match, message)):
+                        return True
+                except re.error as e:
+                    logger.warning(f"无效的正则表达式: {trigger.match}, 错误: {e}")
+                    continue
             # 关键词匹配
             elif trigger.type == "keywords" and trigger.match:
-                matcher = AhoMatcher(use_logic=trigger.use_logic)
-                keywords = self._split_args(trigger.match)
-                matcher.build(set(keywords))
-                if bool(matcher.find(message)):
-                    return True
+                try:
+                    matcher = AhoMatcher(use_logic=trigger.use_logic)
+                    keywords = self._split_args(trigger.match)
+                    matcher.build(set(keywords))
+                    if bool(matcher.find(message)):
+                        return True
+                except Exception as e:
+                    logger.warning(f"关键词匹配器错误: {e}, 关键词: {trigger.match}")
+                    continue
             # 监听器类型触发器总是触发
             elif trigger.type == "listener":
                 return True
@@ -340,10 +323,11 @@ class LoreParser:
             return False
 
         # 检查触发条件（除非跳过检查）
+        can_trigger = True
         if not skip_chk:
             can_trigger = self._can_trigger(trigger, messages)
             if not can_trigger:
-                return True
+                return True  # 继续处理下一个触发器
 
         # 解析触发器内容并根据位置添加到结果中
         content = self.parse_placeholder(trigger.content)
@@ -359,11 +343,11 @@ class LoreParser:
         for action in trigger.actions:
             parsed_action = self.parse_placeholder(action)
             # 如果动作是另一个触发器的名称，则递归处理该触发器
-            if parsed_action in [t.name for t in self._triggers]:
-                if parsed_action != trigger.name:  # 防止自我递归
-                    self._process_trigger(
-                        parsed_action, messages, result, depth + 1, True
-                    )
+            trigger_by_name = next((t for t in self._triggers if t.name == parsed_action), None)
+            if trigger_by_name and parsed_action != trigger.name:  # 防止自我递归
+                self._process_trigger(
+                    trigger_by_name, messages, result, depth + 1, True
+                )
 
         return not trigger.block if can_trigger else True
 
@@ -378,6 +362,7 @@ class LoreParser:
         """
         result = LoreResult()
         triged_lis: set[str] = set()
+        # 更新真实世界的空闲时间
         self._real_idle["before"] = self._real_idle["after"]
         self._real_idle["after"] = datetime.now()
 

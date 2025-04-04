@@ -4,8 +4,8 @@ world_state:
 user_state:
   - name: "draw_stats"
     variables:
-      - user_draws: 0
-      - last_draw: ""
+      user_draws: 0
+      last_draw: ""
 
 trigger:
   - name: "draw_lot"

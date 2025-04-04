@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 # 定义支持的比较运算符及其对应的函数
 OPERATORS = [
     ("==", lambda x, y: x == y),  # 等于
@@ -75,6 +77,7 @@ class LogicHandler:
             case _:
                 return "未知逻辑操作"
 
+    @lru_cache(maxsize=128)
     def _eval_cond(self, condition: str) -> bool:
         """处理条件表达式
 
@@ -96,6 +99,10 @@ class LogicHandler:
             return True
         if condition.lower() == "false" or condition == "0" or condition == "":
             return False
+
+        # 处理非逻辑（!）
+        if condition.startswith("!"):
+            return not self._eval_cond(condition[1:].strip())
 
         # 处理逻辑与（&&）
         if "&&" in condition:
@@ -128,6 +135,7 @@ class LogicHandler:
         # 如果没有匹配到任何运算符，将非空条件视为真
         return bool(condition)
 
+    @lru_cache(maxsize=256)
     def _try_numeric_conversion(self, value: str) -> int | float | str:
         """尝试将值转换为数值类型
 
