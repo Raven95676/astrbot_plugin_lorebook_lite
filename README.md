@@ -43,12 +43,12 @@ var_name: 变量名，值为其初始值。
 user_state:
   - name: "变量组名"
     variables:
-      - var_name: "初始值"
-      - var_name: "初始值"
+      var_name: "初始值"
+      var_name: "初始值"
   - name: "变量组名"
     variables:
-      - var_name: "初始值"
-      - var_name: "初始值"
+      var_name: "初始值"
+      var_name: "初始值"
 ```
 
 在单个会话中存储用户的状态。若键名重复，保留最后一个键。

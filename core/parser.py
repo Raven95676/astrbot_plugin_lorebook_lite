@@ -53,7 +53,7 @@ class LoreParser:
         self.messages: deque[str] = deque(maxlen=scan_depth)
 
         # 初始化变量存储
-        self._vars: dict[str, Any] = {}
+        self._vars: dict[str, dict[str, Any]] = {}
         self._vars["world"] = copy.deepcopy(self._lorebook.get("world_state", {}))
         self._vars.update(
             {
@@ -123,41 +123,6 @@ class LoreParser:
     def __repr__(self) -> str:
         """返回解析器的官方字符串表示"""
         return self.__str__()
-
-    def _parse_dict(self, d: Any) -> Any:
-        """递归解析字典中所有键和值中的占位符
-
-        Args:
-            d: 要解析的字典或其他值
-
-        Returns:
-            解析后的字典或值
-        """
-        if not isinstance(d, dict):
-            return self.parse_placeholder(str(d)) if isinstance(d, str) else d
-
-        parsed_dict = {}
-        for key, value in d.items():
-            parsed_key = self.parse_placeholder(str(key))
-            if isinstance(value, dict):
-                parsed_value = self._parse_dict(value)
-            elif isinstance(value, list):
-                parsed_value = [
-                    self._parse_dict(item)
-                    if isinstance(item, dict)
-                    else self.parse_placeholder(str(item))
-                    if isinstance(item, str)
-                    else item
-                    for item in value
-                ]
-            else:
-                parsed_value = (
-                    self.parse_placeholder(str(value))
-                    if isinstance(value, str)
-                    else value
-                )
-            parsed_dict[parsed_key] = parsed_value
-        return parsed_dict
 
     def parse_placeholder(self, text: str) -> str:
         """解析文本中的占位符，支持多阶段解析

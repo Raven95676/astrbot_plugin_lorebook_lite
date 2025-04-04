@@ -24,9 +24,9 @@ class VarHandler:
         scope = self.parser.parse_placeholder(scope)
         scope_key = scope if scope == "world" else f"{self.parser.sender}:{scope}"
 
-        # 确保作用域存在
+        # 如果作用域不存在，则创建并复制对应作用域的变量
         if scope_key not in self.parser._vars:
-            self.parser._vars[scope_key] = {}
+            self.parser._vars[scope_key] = self.parser._vars.get(scope, {}).copy()
 
         return scope_key
 
@@ -121,7 +121,9 @@ class VarHandler:
         """
         var_name = self.parser.parse_placeholder(var_name)
         scope_key = self._get_scope_key(scope)
-        return self.parser._vars[scope_key].get(var_name, "")
+        return self.parser.parse_placeholder(
+            self.parser._vars[scope_key].get(var_name, "")
+        )
 
     def _set_var(self, var_name: str, value: Any, scope: str = "world") -> str:
         """设置变量值
