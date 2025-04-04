@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Any
 
 
@@ -13,7 +12,6 @@ class VarHandler:
         """
         self.parser = parser
 
-    @lru_cache(maxsize=64)
     def _get_scope_key(self, scope: str) -> str:
         """获取作用域键
 
@@ -32,7 +30,6 @@ class VarHandler:
 
         return scope_key
 
-    @lru_cache(maxsize=128)
     def _parse_var_scope(self, var: str, default_scope: str) -> tuple[str, str]:
         """解析变量的作用域和名称
 
@@ -156,7 +153,6 @@ class VarHandler:
         scope_key = self._get_scope_key(scope)
         self.parser._vars[scope_key].pop(var_name, None)
 
-    @lru_cache(maxsize=256)
     def _get_num(self, arg: str, scope: str = "world") -> int | float | str:
         """获取数字值
 
