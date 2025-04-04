@@ -104,6 +104,34 @@ class LorePlugin(Star):
 
         return persona_id, persona
 
+    async def _restore_persona(self, umo: str):
+        """还原人格配置"""
+        persona_id, _ = await self._get_curr_persona(umo)
+        if persona_id and persona_id in self.persona_bak:
+            for p in self.context.provider_manager.personas:
+                if p["name"] == persona_id:
+                    p["prompt"] = self.persona_bak[persona_id]["prompt"]
+                    break
+            logger.debug(f"lorebook | {umo} | 还原人格 {persona_id}")
+
+    def _clear_session_results(self, umo: str):
+        """清理会话结果缓存"""
+        if umo in self.res_map:
+            self.res_map[umo].clear()
+            logger.debug(f"lorebook | {umo} | 清除lorebook缓存")
+
+    @filter.command("reset")
+    async def reset(self, event: AstrMessageEvent):
+        """重置lorebook插件"""
+        umo = str(event.unified_msg_origin)
+
+        if umo in self.lore_sessions:
+            del self.lore_sessions[umo]
+            logger.debug(f"lorebook | {umo} | 重置lorebook解析器")
+
+        self._clear_session_results(umo)
+        await self._restore_persona(umo)
+
     @filter.event_message_type(EventMessageType.ALL)
     async def on_message(self, event: AstrMessageEvent):
         """处理所有消息事件，计算Lore规则匹配结果"""
@@ -190,16 +218,5 @@ class LorePlugin(Star):
             self.lore_sessions[umo].messages.append(msg_clean)
 
         # 清除结果缓存并还原人格
-        if umo in self.res_map:
-            self.res_map[umo].clear()
-
-            # 获取当前人格并还原
-            persona_id, _ = await self._get_curr_persona(umo)
-            if persona_id and persona_id in self.persona_bak:
-                # 找到对应的persona对象并还原prompt
-                for p in self.context.provider_manager.personas:
-                    if p["name"] == persona_id:
-                        p["prompt"] = self.persona_bak[persona_id]["prompt"]
-                        break
-
-            logger.debug(f"lorebook | {umo} | 清除lorebook缓存并还原人格 {persona_id}")
+        self._clear_session_results(umo)
+        await self._restore_persona(umo)
