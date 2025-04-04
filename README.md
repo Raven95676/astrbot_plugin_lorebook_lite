@@ -221,10 +221,10 @@ position: 插入位置，同触发器 position。
 {var::set(scope.var_name, value)} - 设置变量，scope 可为 "world" 或用户名，返回设置的值
 {var::get(scope.var_name)}        - 获取变量，返回变量内容（若未定义则返回空字符串）
 {var::del(scope.var_name)}        - 删除变量，无返回值
-{var::add(X + Y)}                 - 加法，X 和 Y 可为变量或数值，返回结果
-{var::sub(X - Y)}                 - 减法，X 和 Y 可为变量或数值，返回结果
-{var::mul(X * Y)}                 - 乘法，X 和 Y 可为变量或数值，返回结果
-{var::div(X / Y)}                 - 除法，X 和 Y 可为变量或数值，返回结果
+{var::add(X,Y)}                   - 加法，X 和 Y 可为变量或数值，返回结果
+{var::sub(X,Y)}                   - 减法，X 和 Y 可为变量或数值，返回结果
+{var::mul(X,Y)}                   - 乘法，X 和 Y 可为变量或数值，返回结果
+{var::div(X,Y)}                   - 除法，X 和 Y 可为变量或数值，返回结果
 ```
 
 **逻辑相关：**

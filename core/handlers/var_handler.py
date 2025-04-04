@@ -73,22 +73,9 @@ class VarHandler:
                 target_scope, var_name = self._parse_var_scope(args[0], scope)
                 return str(self._get_var(var_name, target_scope))
 
-            case ("get", 2):
-                # 获取变量值(第一个参数是变量名，第二个参数是作用域)
-                var_name = args[0]
-                target_scope = args[1]
-                return str(self._get_var(var_name, target_scope))
-
             case ("del", 1):
                 # 删除变量
                 target_scope, var_name = self._parse_var_scope(args[0], scope)
-                self._del_var(var_name, target_scope)
-                return ""
-
-            case ("del", 2):
-                # 删除变量(第一个参数是变量名，第二个参数是作用域)
-                var_name = args[0]
-                target_scope = args[1]
                 self._del_var(var_name, target_scope)
                 return ""
 
