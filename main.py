@@ -152,18 +152,21 @@ class LorePlugin(Star):
         logger.debug(f"lorebook | {umo} | {results}")
 
         # 合并所有结果中的提示内容
-        sys_start = "\n".join(
-            [line for res in results if res.sys_start for line in res.sys_start]
-        )
-        user_start = "\n".join(
-            [line for res in results if res.user_start for line in res.user_start]
-        )
-        sys_end = "\n".join(
-            [line for res in results if res.sys_end for line in res.sys_end]
-        )
-        user_end = "\n".join(
-            [line for res in results if res.user_end for line in res.user_end]
-        )
+        sys_start_lines = []
+        user_start_lines = []
+        sys_end_lines = []
+        user_end_lines = []
+
+        for res in results:
+            sys_start_lines.extend(res.sys_start)
+            user_start_lines.extend(res.user_start)
+            sys_end_lines.extend(res.sys_end)
+            user_end_lines.extend(res.user_end)
+
+        sys_start = "\n".join(sys_start_lines)
+        user_start = "\n".join(user_start_lines)
+        sys_end = "\n".join(sys_end_lines)
+        user_end = "\n".join(user_end_lines)
 
         # 将处理结果插入到LLM请求中
         if sys_start and persona:

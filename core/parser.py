@@ -269,8 +269,13 @@ class LoreParser:
             else:
                 current.append(c)
 
+        # 确保添加最后一个参数
         if current:
             args.append("".join(current).strip())
+
+        # 如果解析结束时仍在引号内，记录警告
+        if in_quotes:
+            logger.warning(f"引号不匹配: {args_str}")
 
         # 移除每个参数可能残留的首尾引号
         for i in range(len(args)):
@@ -304,15 +309,23 @@ class LoreParser:
         for message in messages:
             # 正则表达式匹配
             if trigger.type == "regex" and trigger.match:
-                if bool(re.search(trigger.match, message)):
-                    return True
+                try:
+                    if bool(re.search(trigger.match, message)):
+                        return True
+                except re.error as e:
+                    logger.warning(f"无效的正则表达式: {trigger.match}, 错误: {e}")
+                    continue
             # 关键词匹配
             elif trigger.type == "keywords" and trigger.match:
-                matcher = AhoMatcher(use_logic=trigger.use_logic)
-                keywords = self._split_args(trigger.match)
-                matcher.build(set(keywords))
-                if bool(matcher.find(message)):
-                    return True
+                try:
+                    matcher = AhoMatcher(use_logic=trigger.use_logic)
+                    keywords = self._split_args(trigger.match)
+                    matcher.build(set(keywords))
+                    if bool(matcher.find(message)):
+                        return True
+                except Exception as e:
+                    logger.warning(f"关键词匹配器错误: {e}, 关键词: {trigger.match}")
+                    continue
             # 监听器类型触发器总是触发
             elif trigger.type == "listener":
                 return True
@@ -382,6 +395,7 @@ class LoreParser:
         """
         result = LoreResult()
         triged_lis: set[str] = set()
+        # 更新真实世界的空闲时间
         self._real_idle["before"] = self._real_idle["after"]
         self._real_idle["after"] = datetime.now()
 
