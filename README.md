@@ -229,7 +229,7 @@ position: 插入位置，同触发器 position。
 
 **逻辑相关：**
 
-条件表达式(condition)支持 ==, !=, >, <, >=, <=, &&（与），||（或）。
+条件表达式(condition)支持 ==, !=, >, <, >=, <=, &&（与），||（或），!（非）。
 
 ```
 {logic::if(condition, true_value, false_value)} - 逻辑判断，condition为表达式，true_value为条件为真时返回的值，false_value为条件为假时返回的值

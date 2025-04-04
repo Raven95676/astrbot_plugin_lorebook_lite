@@ -97,6 +97,10 @@ class LogicHandler:
         if condition.lower() == "false" or condition == "0" or condition == "":
             return False
 
+        # 处理非逻辑（!）
+        if condition.startswith("!"):
+            return not self._eval_cond(condition[1:].strip())
+
         # 处理逻辑与（&&）
         if "&&" in condition:
             parts = condition.split("&&")
