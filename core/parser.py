@@ -7,6 +7,8 @@ from typing import Any
 
 from kwmatcher import AhoMatcher
 
+from astrbot.api import logger
+
 from ._types import LoreResult, Trigger  # type: ignore
 from .handlers.logic_handler import LogicHandler  # type: ignore
 from .handlers.random_handler import RandomHandler  # type: ignore
@@ -209,7 +211,8 @@ class LoreParser:
 
                 # 默认情况：保持原样
                 return match.group(0)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"解析占位符时出现错误: {e!s}, 占位符: {match.group(0)}")
                 return match.group(0)
 
         # 阶段1: 处理基础内置函数
@@ -340,10 +343,11 @@ class LoreParser:
             return False
 
         # 检查触发条件（除非跳过检查）
+        can_trigger = True
         if not skip_chk:
             can_trigger = self._can_trigger(trigger, messages)
             if not can_trigger:
-                return True
+                return True  # 继续处理下一个触发器
 
         # 解析触发器内容并根据位置添加到结果中
         content = self.parse_placeholder(trigger.content)
@@ -359,11 +363,11 @@ class LoreParser:
         for action in trigger.actions:
             parsed_action = self.parse_placeholder(action)
             # 如果动作是另一个触发器的名称，则递归处理该触发器
-            if parsed_action in [t.name for t in self._triggers]:
-                if parsed_action != trigger.name:  # 防止自我递归
-                    self._process_trigger(
-                        parsed_action, messages, result, depth + 1, True
-                    )
+            trigger_by_name = next((t for t in self._triggers if t.name == parsed_action), None)
+            if trigger_by_name and parsed_action != trigger.name:  # 防止自我递归
+                self._process_trigger(
+                    trigger_by_name, messages, result, depth + 1, True
+                )
 
         return not trigger.block if can_trigger else True
 
