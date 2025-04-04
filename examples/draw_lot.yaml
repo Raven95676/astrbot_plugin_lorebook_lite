@@ -1,10 +1,10 @@
 world_state:
-  total_draws: 0
+  total_draws: "0"
 
 user_state:
   - name: "draw_stats"
     variables:
-      user_draws: 0
+      user_draws: "0"
       last_draw: ""
 
 trigger:
