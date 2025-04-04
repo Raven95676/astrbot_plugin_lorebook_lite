@@ -110,7 +110,7 @@ class LorePlugin(Star):
         if not self.lorebook:
             return
 
-        umo = event.unified_msg_origin
+        umo = str(event.unified_msg_origin)
 
         # 为每个会话创建一个独立的解析器
         if umo not in self.lore_sessions:
@@ -118,11 +118,11 @@ class LorePlugin(Star):
 
         # 设置解析器的发送者信息
         parser = self.lore_sessions[umo]
-        parser.sender = event.get_sender_id()
-        parser.sender_name = event.get_sender_name() or event.get_sender_id()
+        parser.sender = str(event.get_sender_id())
+        parser.sender_name = str(event.get_sender_name()) or str(event.get_sender_id())
 
         # 处理消息文本
-        msg = event.get_message_str()
+        msg = str(event.get_message_str())
         msg_clean = " ".join(msg.split())
         parser.messages.append(msg_clean)
 
@@ -139,7 +139,7 @@ class LorePlugin(Star):
     @filter.on_llm_request(priority=1)
     async def on_llm_req(self, event: AstrMessageEvent, request: ProviderRequest):
         """在LLM请求前处理，插入Lore规则匹配结果"""
-        umo = event.unified_msg_origin
+        umo = str(event.unified_msg_origin)
 
         if umo not in self.res_map:
             return
