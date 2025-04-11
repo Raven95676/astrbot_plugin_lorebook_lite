@@ -1,5 +1,8 @@
 # astrbot_plugin_lorebook_lite
 
+> lorebook交流群（QQ）
+> 1046548820
+
 AstrBot 的 lorebook 插件，支持自定义触发器、变量、逻辑、占位符等。
 
 本插件依赖：
