@@ -66,7 +66,8 @@ trigger:
     content: |
       任务进度已更新！
       当前进度: {var::set(world.quest_progress, {var::add({var::get(world.quest_progress)}, 10)})}%
-      {buildin::save(world)}
+    actions:
+      - "{buildin::save(world)}"
     
   - name: "earn_gold"
     type: "keywords"
@@ -78,4 +79,5 @@ trigger:
     content: |
       你获得了50金币！
       当前金币: {var::set(stats.gold, {var::add({var::get(stats.gold)}, 50)})}
-      {buildin::save(user)}
+    actions:
+      - "{buildin::save(user)}"
