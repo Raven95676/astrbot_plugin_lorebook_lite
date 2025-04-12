@@ -1,0 +1,81 @@
+world_state:
+  world_time: "2023-05-15 14:30"
+  location: "魔法森林"
+  weather: "晴朗"
+  current_quest: "寻找失落的宝藏"
+  quest_progress: "0"
+
+user_state:
+  - name: "stats"
+    variables:
+      health: "100"
+      mana: "50"
+      gold: "200"
+      level: "5"
+      experience: "450"
+      inventory: "剑,盾,药水,地图"
+
+trigger:
+  - name: "save_game"
+    type: "keywords"
+    match: "保存游戏,存档"
+    priority: 10
+    block: true
+    probability: 1.0
+    position: "sys_end"
+    content: |
+      正在保存游戏状态...
+      {buildin::save(world)}
+      {buildin::save(user)}
+      游戏状态已保存！
+      
+      当前状态:
+      - 位置: {var::get(world.location)}
+      - 任务: {var::get(world.current_quest)}
+      - 进度: {var::get(world.quest_progress)}%
+      - 生命值: {var::get(stats.health)}
+      - 金币: {var::get(stats.gold)}
+    
+  - name: "load_game"
+    type: "keywords"
+    match: "加载游戏,读档"
+    priority: 10
+    block: true
+    probability: 1.0
+    position: "sys_end"
+    content: |
+      正在加载游戏状态...
+      {buildin::load(world)}
+      {buildin::load(user)}
+      游戏状态已加载！
+      
+      当前状态:
+      - 位置: {var::get(world.location)}
+      - 任务: {var::get(world.current_quest)}
+      - 进度: {var::get(world.quest_progress)}%
+      - 生命值: {var::get(stats.health)}
+      - 金币: {var::get(stats.gold)}
+      
+  - name: "update_progress"
+    type: "keywords"
+    match: "更新进度"
+    priority: 9
+    block: true
+    probability: 1.0
+    position: "sys_end"
+    content: |
+      任务进度已更新！
+      当前进度: {var::set(world.quest_progress, {var::add({var::get(world.quest_progress)}, 10)})}%
+      {buildin::save(world)}
+    
+  - name: "earn_gold"
+    type: "keywords"
+    match: "获得金币"
+    priority: 9
+    block: true
+    probability: 1.0
+    position: "sys_end"
+    content: |
+      你获得了50金币！
+      当前金币: {var::set(stats.gold, {var::add({var::get(stats.gold)}, 50)})}
+      {buildin::save(user)}

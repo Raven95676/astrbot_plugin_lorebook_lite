@@ -152,10 +152,11 @@ class LorePlugin(Star):
         if session_key not in self.lore_sessions:
             self.lore_sessions[session_key] = LoreParser(self.lorebook, self.scan_depth)
 
-        # 设置解析器的发送者信息
+        # 设置解析器的基本信息
         parser = self.lore_sessions[session_key]
         parser.sender = str(event.get_sender_id())
         parser.sender_name = str(event.get_sender_name()) or str(event.get_sender_id())
+        parser.session = session_key
 
         # 处理消息文本
         msg = str(event.get_message_str())
@@ -163,7 +164,7 @@ class LorePlugin(Star):
         parser.messages.append(msg_clean)
 
         # 处理聊天内容，获取匹配结果
-        res = parser.process_chat()
+        res = await parser.process_chat()
 
         # 初始化结果队列（如果不存在）
         if session_key not in self.res_map:

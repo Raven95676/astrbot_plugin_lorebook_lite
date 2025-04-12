@@ -20,7 +20,7 @@ class RandomHandler:
         """
         self.parser = parser
 
-    def handle_random_oper(self, args: list[str]) -> str:
+    async def handle_random_oper(self, args: list[str]) -> str:
         """处理随机数相关操作
 
         Args:

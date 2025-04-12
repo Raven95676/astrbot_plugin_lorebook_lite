@@ -12,6 +12,7 @@ from astrbot.api import logger
 from ._types import LoreResult, Trigger  # type: ignore
 from .handlers.logic_handler import LogicHandler  # type: ignore
 from .handlers.random_handler import RandomHandler  # type: ignore
+from .handlers.save_handler import SaveHandler  # type: ignore
 from .handlers.time_handler import TimeHandler  # type: ignore
 from .handlers.var_handler import VarHandler  # type: ignore
 
@@ -27,6 +28,7 @@ class LoreParser:
         "sender",
         "sender_name",
         "messages",
+        "session",
         "_lorebook",
         "_vars",
         "_triggers",
@@ -38,6 +40,7 @@ class LoreParser:
         "_time_handler",
         "_random_handler",
         "_logic_handler",
+        "_save_handler",
     )
 
     def __init__(self, lorebook: dict[str, Any], scan_depth: int = 1):
@@ -51,6 +54,7 @@ class LoreParser:
         self.sender = "AstrBot"
         self.sender_name = "AstrBot"
         self.messages: deque[str] = deque(maxlen=scan_depth)
+        self.session = "default"
 
         # 初始化变量存储
         self._vars: dict[str, dict[str, Any]] = {}
@@ -115,6 +119,7 @@ class LoreParser:
         self._time_handler = TimeHandler(self)
         self._random_handler = RandomHandler(self)
         self._logic_handler = LogicHandler(self)
+        self._save_handler = SaveHandler(self)
 
     def __str__(self) -> str:
         """返回解析器的字符串表示"""
@@ -124,7 +129,7 @@ class LoreParser:
         """返回解析器的官方字符串表示"""
         return self.__str__()
 
-    def parse_placeholder(self, text: str) -> str:
+    async def parse_placeholder(self, text: str) -> str:
         """解析文本中的占位符，支持多阶段解析
 
         Args:
@@ -136,7 +141,7 @@ class LoreParser:
         if not isinstance(text, str):
             return str(text)
 
-        def replace_match(match, phase):
+        async def replace_match(match, phase):
             """根据不同阶段处理匹配到的占位符
 
             Args:
@@ -151,7 +156,7 @@ class LoreParser:
                 function = match.group(2)
                 args_str = match.group(3) or ""
 
-                args = self._split_args(args_str) if args_str else []
+                args = await self._split_args(args_str) if args_str else []
 
                 match (phase, namespace, function):
                     # 阶段1: 处理基础内置函数
@@ -160,19 +165,23 @@ class LoreParser:
                     case (1, "buildin", "sender_name"):
                         return self.sender_name
                     case (1, "buildin", "time"):
-                        return self._time_handler.handle_time_oper(args)
+                        return await self._time_handler.handle_time_oper(args)
                     case (1, "buildin", "random"):
-                        return self._random_handler.handle_random_oper(args)
+                        return await self._random_handler.handle_random_oper(args)
+                    case (1, "buildin", "load"):
+                        return await self._save_handler.handle_load_oper(args)
 
                     # 阶段2: 处理变量设置
                     case (2, "var", "set"):
-                        return self._var_handler.handle_var_oper(function, args)
+                        return await self._var_handler.handle_var_oper(function, args)
+                    case (2, "buildin", "save"):
+                        return await self._save_handler.handle_save_oper(args)
 
                     # 阶段3: 处理所有其他函数
                     case (3, "var", _):
-                        return self._var_handler.handle_var_oper(function, args)
+                        return await self._var_handler.handle_var_oper(function, args)
                     case (3, "logic", _):
-                        return self._logic_handler.handle_logic_oper(function, args)
+                        return await self._logic_handler.handle_logic_oper(function, args)
 
                 # 默认情况：保持原样
                 return match.group(0)
@@ -182,28 +191,37 @@ class LoreParser:
 
         # 阶段1: 处理基础内置函数
         for _ in range(MAX_RECURSION_DEPTH):
-            new_text = PLACE_PATTERN.sub(lambda m: replace_match(m, phase=1), text)
-            if new_text == text:  # 如果文本没有变化，跳出循环
+            new_text = text
+            for match in PLACE_PATTERN.finditer(text):
+                replacement = await replace_match(match, phase=1)
+                new_text = new_text.replace(match.group(0), str(replacement), 1)
+            if new_text == text: # 如果文本没有变化，跳出循环
                 break
             text = new_text
 
         # 阶段2: 处理变量设置
         for _ in range(MAX_RECURSION_DEPTH):
-            new_text = PLACE_PATTERN.sub(lambda m: replace_match(m, phase=2), text)
+            new_text = text
+            for match in PLACE_PATTERN.finditer(text):
+                replacement = await replace_match(match, phase=2)
+                new_text = new_text.replace(match.group(0), str(replacement), 1)
             if new_text == text:
                 break
             text = new_text
 
         # 阶段3: 处理所有其他函数
         for _ in range(MAX_RECURSION_DEPTH):
-            new_text = PLACE_PATTERN.sub(lambda m: replace_match(m, phase=3), text)
+            new_text = text
+            for match in PLACE_PATTERN.finditer(text):
+                replacement = await replace_match(match, phase=3)
+                new_text = new_text.replace(match.group(0), str(replacement), 1)
             if new_text == text:
                 break
             text = new_text
 
         return text
 
-    def _split_args(self, args_str: str) -> list[str]:
+    async def _split_args(self, args_str: str) -> list[str]:
         """切分参数字符串，支持引号保护。
 
         Args:
@@ -245,12 +263,14 @@ class LoreParser:
         # 移除每个参数可能残留的首尾引号
         for i in range(len(args)):
             arg = args[i]
-            if (arg.startswith('"') and arg.endswith('"')) or (arg.startswith("'") and arg.endswith("'")):
+            if (arg.startswith('"') and arg.endswith('"')) or (
+                arg.startswith("'") and arg.endswith("'")
+            ):
                 args[i] = arg[1:-1]
 
         return args
 
-    def _can_trigger(self, trigger: Trigger, messages: deque[str]) -> bool:
+    async def _can_trigger(self, trigger: Trigger, messages: deque[str]) -> bool:
         """检查触发器是否可以触发
 
         Args:
@@ -266,8 +286,8 @@ class LoreParser:
 
         # 检查条件表达式
         if trigger.conditional:
-            parsed_condition = self.parse_placeholder(trigger.conditional)
-            if not self._logic_handler._eval_cond(parsed_condition):
+            parsed_condition = await self.parse_placeholder(trigger.conditional)
+            if not await self._logic_handler._eval_cond(parsed_condition):
                 return False
 
         # 检查消息匹配条件
@@ -284,7 +304,7 @@ class LoreParser:
             elif trigger.type == "keywords" and trigger.match:
                 try:
                     matcher = AhoMatcher(use_logic=trigger.use_logic)
-                    keywords = self._split_args(trigger.match)
+                    keywords = await self._split_args(trigger.match)
                     matcher.build(set(keywords))
                     if bool(matcher.find(message)):
                         return True
@@ -296,7 +316,7 @@ class LoreParser:
                 return True
         return False  # 没有匹配任何条件
 
-    def _process_trigger(
+    async def _process_trigger(
         self,
         trigger: Trigger,
         messages: deque[str],
@@ -323,12 +343,12 @@ class LoreParser:
         # 检查触发条件（除非跳过检查）
         can_trigger = True
         if not skip_chk:
-            can_trigger = self._can_trigger(trigger, messages)
+            can_trigger = await self._can_trigger(trigger, messages)
             if not can_trigger:
                 return True  # 继续处理下一个触发器
 
         # 解析触发器内容并根据位置添加到结果中
-        content = self.parse_placeholder(trigger.content)
+        content = await self.parse_placeholder(trigger.content)
         if trigger.position == "sys_start":
             result.sys_start.append(content)
         elif trigger.position == "sys_end":
@@ -339,17 +359,19 @@ class LoreParser:
             result.user_end.append(content)
 
         for action in trigger.actions:
-            parsed_action = self.parse_placeholder(action)
+            parsed_action = await self.parse_placeholder(action)
             # 如果动作是另一个触发器的名称，则递归处理该触发器
-            trigger_by_name = next((t for t in self._triggers if t.name == parsed_action), None)
+            trigger_by_name = next(
+                (t for t in self._triggers if t.name == parsed_action), None
+            )
             if trigger_by_name and parsed_action != trigger.name:  # 防止自我递归
-                self._process_trigger(
+                await self._process_trigger(
                     trigger_by_name, messages, result, depth + 1, True
                 )
 
         return not trigger.block if can_trigger else True
 
-    def process_chat(self) -> LoreResult:
+    async def process_chat(self) -> LoreResult:
         """处理聊天消息，应用所有适用的触发器和注释
 
         Args:
@@ -373,13 +395,13 @@ class LoreParser:
                 else:
                     triged_lis.add(trigger.name)
             # 处理当前触发器, 如果返回 False，则停止处理下一个触发器
-            if not self._process_trigger(trigger, self.messages, result):
+            if not await self._process_trigger(trigger, self.messages, result):
                 break
 
         # 处理作者注释
         for note in self._notes:
             if random.random() < note.probability:
-                content = self.parse_placeholder(note.content)
+                content = await self.parse_placeholder(note.content)
                 # 根据位置添加到结果中
                 if note.position == "sys_start":
                     result.sys_start.append(content)
