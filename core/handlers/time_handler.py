@@ -26,7 +26,7 @@ class TimeHandler:
         """
         self.parser = parser
 
-    def handle_time_oper(self, args: list[str]) -> str:
+    async def handle_time_oper(self, args: list[str]) -> str:
         """处理时间相关操作
 
         Args:

@@ -8,14 +8,14 @@ from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 from astrbot.core.config.astrbot_config import AstrBotConfig
-from astrbot.core.provider.entites import LLMResponse, ProviderRequest
+from astrbot.core.provider.entities import LLMResponse, ProviderRequest
 from astrbot.core.star.filter.event_message_type import EventMessageType
 
 from .core._types import LoreResult  # type: ignore
 from .core.parser import LoreParser  # type: ignore
 
 
-@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.4")
+@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.5")
 class LorePlugin(Star):
     """Lorebook插件，用于根据预设规则处理聊天内容并修改LLM请求"""
 
@@ -152,10 +152,11 @@ class LorePlugin(Star):
         if session_key not in self.lore_sessions:
             self.lore_sessions[session_key] = LoreParser(self.lorebook, self.scan_depth)
 
-        # 设置解析器的发送者信息
+        # 设置解析器的基本信息
         parser = self.lore_sessions[session_key]
         parser.sender = str(event.get_sender_id())
         parser.sender_name = str(event.get_sender_name()) or str(event.get_sender_id())
+        parser.session = session_key
 
         # 处理消息文本
         msg = str(event.get_message_str())
@@ -163,7 +164,7 @@ class LorePlugin(Star):
         parser.messages.append(msg_clean)
 
         # 处理聊天内容，获取匹配结果
-        res = parser.process_chat()
+        res = await parser.process_chat()
 
         # 初始化结果队列（如果不存在）
         if session_key not in self.res_map:

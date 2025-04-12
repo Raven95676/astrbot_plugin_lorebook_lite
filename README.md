@@ -16,14 +16,14 @@ AstrBot 的 lorebook 插件，支持自定义触发器、变量、逻辑、占�
 
 建议在使用前先阅读[YAML 入门教程](https://www.runoob.com/w3cnote/yaml-intro.html)
 
-## 近期更改（0.1.1 - 0.1.4）
 
+## 近期更改（0.1.1 - 0.1.5）
+
+- 实现存档与加载（实验性）
 - 实现作用域继承与变量值占位符解析
 - 添加非逻辑
 - 按会话、人格隔离lorebook
 - 添加重置lorebook功能
-- 优化解析器触发逻辑和占位符错误处理
-- 修复事件属性类型问题
 
 ## 使用方法
 
@@ -169,6 +169,13 @@ position: 插入位置，同触发器 position。
 ```
 {buildin::sender} - 返回发送者ID
 {buildin::sender_name} - 返回发送者名称
+```
+
+**存档相关：**
+
+```
+{buildin::load(scope)} - 加载存档，scope为world或user
+{buildin::save(scope)} - 保存存档，scope为world或user
 ```
 
 **时间相关：**
