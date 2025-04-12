@@ -8,7 +8,7 @@ from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, register
 from astrbot.core.config.astrbot_config import AstrBotConfig
-from astrbot.core.provider.entites import LLMResponse, ProviderRequest
+from astrbot.core.provider.entities import LLMResponse, ProviderRequest
 from astrbot.core.star.filter.event_message_type import EventMessageType
 
 from .core._types import LoreResult  # type: ignore
