@@ -1,8 +1,6 @@
 import json
 import os
 import re
-import aiofiles
-import aiofiles.os as aio_os
 from astrbot.api import logger
 
 
@@ -29,7 +27,7 @@ class SaveHandler:
         """
         return re.sub(r'[\\/:*?"<>|!]', "_", self.parser.session)
 
-    async def handle_save_oper(self, args: list[str]) -> str:
+    def handle_save_oper(self, args: list[str]) -> str:
         """处理保存操作
 
         Args:
@@ -44,10 +42,10 @@ class SaveHandler:
         try:
             match args:
                 case ["world"]:
-                    await self._save_world_state()
+                    self._save_world_state()
                     return "世界状态已保存"
                 case ["user"]:
-                    await self._save_user_state()
+                    self._save_user_state()
                     return "用户状态已保存"
                 case _:
                     return "未知参数"
@@ -55,7 +53,7 @@ class SaveHandler:
             logger.error(f"保存状态时出错: {e}")
             return f"保存失败: {str(e)}"
 
-    async def handle_load_oper(self, args: list[str]) -> str:
+    def handle_load_oper(self, args: list[str]) -> str:
         """处理加载操作
 
         Args:
@@ -70,10 +68,10 @@ class SaveHandler:
         try:
             match args:
                 case ["world"]:
-                    result = await self._load_world_state()
+                    result = self._load_world_state()
                     return result if result else "世界状态已加载"
                 case ["user"]:
-                    result = await self._load_user_state()
+                    result = self._load_user_state()
                     return result if result else "用户状态已加载"
                 case _:
                     return "未知参数"
@@ -81,7 +79,7 @@ class SaveHandler:
             logger.error(f"加载状态时出错: {e}")
             return f"加载失败: {str(e)}"
 
-    async def _save_world_state(self) -> None:
+    def _save_world_state(self) -> None:
         """保存世界状态到文件"""
         try:
             world_state = self.parser._vars.get("world", {})
@@ -96,15 +94,15 @@ class SaveHandler:
             logger.debug(f"保存世界状态到: {filepath}")
             json_data = json.dumps(world_state, ensure_ascii=False, indent=2)
 
-            async with aiofiles.open(filepath, "w", encoding="utf-8") as f:
-                await f.write(json_data)
-                await f.flush()
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(json_data)
+                f.flush()
 
         except Exception as e:
             logger.error(f"保存世界状态时出错: {e}")
             raise
 
-    async def _save_user_state(self) -> None:
+    def _save_user_state(self) -> None:
         """保存用户状态到文件"""
         try:
             user_states = {}
@@ -123,27 +121,27 @@ class SaveHandler:
             logger.debug(f"保存用户状态到: {filepath}")
             json_data = json.dumps(user_states, ensure_ascii=False, indent=2)
 
-            async with aiofiles.open(filepath, "w", encoding="utf-8") as f:
-                await f.write(json_data)
-                await f.flush()
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(json_data)
+                f.flush()
 
         except Exception as e:
             logger.error(f"保存用户状态时出错: {e}")
             raise
 
-    async def _load_world_state(self) -> str:
+    def _load_world_state(self) -> str:
         """加载世界状态"""
         try:
             session_ps = self._get_session_ps()
             filename = f"{session_ps}_world_state.json"
             filepath = os.path.join(self.data_path, filename)
 
-            if not await aio_os.path.exists(filepath):
+            if not os.path.exists(filepath):
                 return f"找不到世界状态文件: {filename}"
 
             logger.debug(f"从 {filepath} 加载世界状态")
-            async with aiofiles.open(filepath, "r", encoding="utf-8") as f:
-                content = await f.read()
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
                 world_state = json.loads(content)
 
             self.parser._vars["world"] = world_state
@@ -153,19 +151,19 @@ class SaveHandler:
             logger.error(f"加载世界状态时出错: {e}")
             raise
 
-    async def _load_user_state(self) -> str:
+    def _load_user_state(self) -> str:
         """加载用户状态"""
         try:
             session_ps = self._get_session_ps()
             filename = f"{session_ps}_user_state.json"
             filepath = os.path.join(self.data_path, filename)
 
-            if not await aio_os.path.exists(filepath):
+            if not os.path.exists(filepath):
                 return f"找不到用户状态文件: {filename}"
 
             logger.debug(f"从 {filepath} 加载用户状态")
-            async with aiofiles.open(filepath, "r", encoding="utf-8") as f:
-                content = await f.read()
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
                 user_states = json.loads(content)
 
             for key, value in user_states.items():

@@ -164,7 +164,7 @@ class LorePlugin(Star):
         parser.messages.append(msg_clean)
 
         # 处理聊天内容，获取匹配结果
-        res = await parser.process_chat()
+        res = parser.process_chat()
 
         # 初始化结果队列（如果不存在）
         if session_key not in self.res_map:

@@ -20,7 +20,7 @@ class LogicHandler:
         """
         self.parser = parser
 
-    async def handle_logic_oper(self, function: str, args: list[str]) -> str:
+    def handle_logic_oper(self, function: str, args: list[str]) -> str:
         """处理逻辑操作
 
         Args:
@@ -34,14 +34,14 @@ class LogicHandler:
             return "参数错误"
 
         # 处理所有参数中的占位符
-        processed_args = [await self.parser.parse_placeholder(arg) for arg in args]
+        processed_args = [self.parser.parse_placeholder(arg) for arg in args]
 
         match function:
             case "if":  # 条件判断
                 if len(processed_args) < 2:
                     return "条件参数不足"
 
-                condition_result = await self._eval_cond(processed_args[0])
+                condition_result = self._eval_cond(processed_args[0])
                 # 如果条件为真，返回第二个参数，否则返回第三个参数（如果存在）
                 result = (
                     processed_args[1]
@@ -54,7 +54,7 @@ class LogicHandler:
                 # 所有条件都为真时返回"true"，否则返回"false"
                 return (
                     "true"
-                    if all(await self._eval_cond(cond) for cond in processed_args)
+                    if all(self._eval_cond(cond) for cond in processed_args)
                     else "false"
                 )
 
@@ -62,7 +62,7 @@ class LogicHandler:
                 # 任一条件为真时返回"true"，否则返回"false"
                 return (
                     "true"
-                    if any(await self._eval_cond(cond) for cond in processed_args)
+                    if any(self._eval_cond(cond) for cond in processed_args)
                     else "false"
                 )
 
@@ -70,12 +70,12 @@ class LogicHandler:
                 # 任一条件为真时返回"false"，否则返回"true"
                 if len(processed_args) != 1:
                     return "逻辑非操作需要一个参数"
-                return "true" if not await self._eval_cond(processed_args[0]) else "false"
+                return "true" if not self._eval_cond(processed_args[0]) else "false"
 
             case _:
                 return "未知逻辑操作"
 
-    async def _eval_cond(self, condition: str) -> bool:
+    def _eval_cond(self, condition: str) -> bool:
         """处理条件表达式
 
         Args:
@@ -99,17 +99,17 @@ class LogicHandler:
 
         # 处理非逻辑（!）
         if condition.startswith("!"):
-            return not await self._eval_cond(condition[1:].strip())
+            return not self._eval_cond(condition[1:].strip())
 
         # 处理逻辑与（&&）
         if "&&" in condition:
             parts = condition.split("&&")
-            return all(await self._eval_cond(part.strip()) for part in parts if part.strip())
+            return all(self._eval_cond(part.strip()) for part in parts if part.strip())
 
         # 处理逻辑或（||）
         if "||" in condition:
             parts = condition.split("||")
-            return any(await self._eval_cond(part.strip()) for part in parts if part.strip())
+            return any(self._eval_cond(part.strip()) for part in parts if part.strip())
 
         # 处理比较运算符
         for op, func in OPERATORS:
