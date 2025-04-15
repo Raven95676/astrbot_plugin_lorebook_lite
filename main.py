@@ -15,7 +15,7 @@ from .core._types import LoreResult  # type: ignore
 from .core.parser import LoreParser  # type: ignore
 
 
-@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.5")
+@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.6")
 class LorePlugin(Star):
     """Lorebook插件，用于根据预设规则处理聊天内容并修改LLM请求"""
 
@@ -164,7 +164,7 @@ class LorePlugin(Star):
         parser.messages.append(msg_clean)
 
         # 处理聊天内容，获取匹配结果
-        res = await parser.process_chat()
+        res = parser.process_chat()
 
         # 初始化结果队列（如果不存在）
         if session_key not in self.res_map:

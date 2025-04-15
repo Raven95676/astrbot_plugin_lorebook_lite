@@ -12,7 +12,7 @@ class VarHandler:
         """
         self.parser = parser
 
-    async def _get_scope_key(self, scope: str) -> str:
+    def _get_scope_key(self, scope: str) -> str:
         """获取作用域键
 
         Args:
@@ -21,7 +21,7 @@ class VarHandler:
         Returns:
             作用域键，全局作用域为"world"，用户作用域为"用户ID:作用域"
         """
-        scope = await self.parser.parse_placeholder(scope)
+        scope = self.parser.parse_placeholder(scope)
         scope_key = scope if scope == "world" else f"{self.parser.sender}:{scope}"
 
         # 如果作用域不存在，则创建并复制对应作用域的变量
@@ -30,7 +30,7 @@ class VarHandler:
 
         return scope_key
 
-    async def _parse_var_scope(self, var: str, default_scope: str) -> tuple[str, str]:
+    def _parse_var_scope(self, var: str, default_scope: str) -> tuple[str, str]:
         """解析变量的作用域和名称
 
         Args:
@@ -45,7 +45,7 @@ class VarHandler:
             return scope_name, var_name
         return default_scope, var
 
-    async def handle_var_oper(
+    def handle_var_oper(
         self, function: str, args: list[str], scope: str = "world"
     ) -> str:
         """处理变量操作
@@ -64,28 +64,28 @@ class VarHandler:
         match (function, len(args)):
             case ("set", n) if n >= 2:
                 # 设置变量值
-                target_scope, var_name = await self._parse_var_scope(args[0], scope)
+                target_scope, var_name = self._parse_var_scope(args[0], scope)
                 value = args[1]
-                return await self._set_var(var_name, value, target_scope)
+                return self._set_var(var_name, value, target_scope)
 
             case ("get", 1):
                 # 获取变量值
-                target_scope, var_name = await self._parse_var_scope(args[0], scope)
-                return str(await self._get_var(var_name, target_scope))
+                target_scope, var_name = self._parse_var_scope(args[0], scope)
+                return str(self._get_var(var_name, target_scope))
 
             case ("del", 1):
                 # 删除变量
-                target_scope, var_name = await self._parse_var_scope(args[0], scope)
-                await self._del_var(var_name, target_scope)
+                target_scope, var_name = self._parse_var_scope(args[0], scope)
+                self._del_var(var_name, target_scope)
                 return ""
 
             case ("add" | "sub" | "mul" | "div", 2):
                 # 数学运算
-                x_scope, x_var = await self._parse_var_scope(args[0], scope)
-                y_scope, y_var = await self._parse_var_scope(args[1], scope)
+                x_scope, x_var = self._parse_var_scope(args[0], scope)
+                y_scope, y_var = self._parse_var_scope(args[1], scope)
 
-                x = await self._get_num(x_var, x_scope)
-                y = await self._get_num(y_var, y_scope)
+                x = self._get_num(x_var, x_scope)
+                y = self._get_num(y_var, y_scope)
 
                 # 如果不是数字，则进行字符串拼接
                 if not (isinstance(x, (int, float)) and isinstance(y, (int, float))):
@@ -109,7 +109,7 @@ class VarHandler:
             case _:
                 return "参数错误"
 
-    async def _get_var(self, var_name: str, scope: str = "world") -> Any:
+    def _get_var(self, var_name: str, scope: str = "world") -> Any:
         """获取变量值
 
         Args:
@@ -119,13 +119,13 @@ class VarHandler:
         Returns:
             变量值，如果变量不存在则返回空字符串
         """
-        var_name = await self.parser.parse_placeholder(var_name)
-        scope_key = await self._get_scope_key(scope)
-        return await self.parser.parse_placeholder(
+        var_name = self.parser.parse_placeholder(var_name)
+        scope_key = self._get_scope_key(scope)
+        return self.parser.parse_placeholder(
             self.parser._vars[scope_key].get(var_name, "")
         )
 
-    async def _set_var(self, var_name: str, value: Any, scope: str = "world") -> str:
+    def _set_var(self, var_name: str, value: Any, scope: str = "world") -> str:
         """设置变量值
 
         Args:
@@ -136,24 +136,24 @@ class VarHandler:
         Returns:
             设置的变量值
         """
-        var_name = await self.parser.parse_placeholder(var_name)
-        value = await self.parser.parse_placeholder(str(value))
-        scope_key = await self._get_scope_key(scope)
+        var_name = self.parser.parse_placeholder(var_name)
+        value = self.parser.parse_placeholder(str(value))
+        scope_key = self._get_scope_key(scope)
         self.parser._vars[scope_key][var_name] = value
         return value
 
-    async def _del_var(self, var_name: str, scope: str = "world") -> None:
+    def _del_var(self, var_name: str, scope: str = "world") -> None:
         """删除变量
 
         Args:
             var_name: 变量名
             scope: 变量作用域，默认为"world"(全局)
         """
-        var_name = await self.parser.parse_placeholder(var_name)
-        scope_key = await self._get_scope_key(scope)
+        var_name = self.parser.parse_placeholder(var_name)
+        scope_key = self._get_scope_key(scope)
         self.parser._vars[scope_key].pop(var_name, None)
 
-    async def _get_num(self, arg: str, scope: str = "world") -> int | float | str:
+    def _get_num(self, arg: str, scope: str = "world") -> int | float | str:
         """获取数字值
 
         尝试将参数转换为数字，如果失败则尝试获取同名变量的值并转换
@@ -170,7 +170,7 @@ class VarHandler:
             num = float(arg)
             return int(num) if num.is_integer() else num
         except (ValueError, TypeError):
-            val = await self._get_var(arg, scope)
+            val = self._get_var(arg, scope)
             try:
                 num = float(val)
                 return int(num) if num.is_integer() else num
