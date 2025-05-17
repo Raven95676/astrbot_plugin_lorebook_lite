@@ -1,7 +1,11 @@
 from datetime import datetime
 from typing import Any
+from typing import TYPE_CHECKING
 
 from dateutil import relativedelta
+
+if TYPE_CHECKING:
+    from ..parser import LoreParser
 
 # 定义不同时间格式的格式化字符串
 TIME_FORMATS = {
@@ -18,13 +22,13 @@ TIME_FORMATS = {
 class TimeHandler:
     """时间处理器类，用于管理和操作时间相关功能"""
 
-    def __init__(self, parser):
+    def __init__(self, parser: "LoreParser"):
         """初始化时间处理器
 
         Args:
             parser: 解析器实例，用于访问和修改当前时间
         """
-        self.parser = parser
+        self.parser: "LoreParser" = parser
 
     def handle_time_oper(self, args: list[str]) -> str:
         """处理时间相关操作

@@ -1,3 +1,8 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..parser import LoreParser
+
 # 定义支持的比较运算符及其对应的函数
 OPERATORS = [
     ("==", lambda x, y: x == y),  # 等于
@@ -12,13 +17,13 @@ OPERATORS = [
 class LogicHandler:
     """逻辑处理器类，用于处理条件判断和逻辑运算"""
 
-    def __init__(self, parser):
+    def __init__(self, parser: "LoreParser"):
         """初始化逻辑处理器
 
         Args:
             parser: 解析器实例，用于解析占位符
         """
-        self.parser = parser
+        self.parser: "LoreParser" = parser
 
     def handle_logic_oper(self, function: str, args: list[str]) -> str:
         """处理逻辑操作
