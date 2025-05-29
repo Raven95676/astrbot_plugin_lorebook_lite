@@ -17,6 +17,7 @@ class Trigger:
     position: str = "sys_start"
     probability: float = 1.0
     actions: list[str] = field(default_factory=list)
+    max_trig: int = -1  # -1 表示无限制
 
     def __post_init__(self):
         self.probability = max(0, min(self.probability, 1))
@@ -35,7 +36,7 @@ class Trigger:
             f"Trigger(name={self.name}, type={self.type}, content='{self.content if len(self.content) < 15 else self.content[:15]}', "
             f"match={self.match}, conditional={self.conditional}, priority={self.priority}, "
             f"block={self.block}, use_logic={self.use_logic}, position={self.position}, "
-            f"probability={self.probability}, actions={self.actions})"
+            f"probability={self.probability}, actions={self.actions}, max_trig={self.max_trig})"
         )
 
 
