@@ -59,12 +59,10 @@ class LoreParser:
         # 初始化变量存储
         self._vars: dict[str, dict[str, Any]] = {}
         self._vars["world"] = copy.deepcopy(self._lorebook.get("world_state", {}))
-        self._vars.update(
-            {
-                item["name"]: copy.deepcopy(item.get("variables", {}))
-                for item in self._lorebook.get("user_state", [])
-            }
-        )
+        self._vars.update({
+            item["name"]: copy.deepcopy(item.get("variables", {}))
+            for item in self._lorebook.get("user_state", [])
+        })
         # 设置当前时间，优先使用世界时间，否则使用系统时间
         if self._vars["world"].get("world_time") is not None:
             self._current_time = datetime.strptime(
@@ -98,6 +96,7 @@ class LoreParser:
                     position=t.get("position", "sys_start"),
                     content=t.get("content", ""),
                     actions=t.get("actions", []),
+                    max_trig=t.get("max_trig", -1),
                 )
                 for t in lorebook.get("trigger", [])
             ],
@@ -195,7 +194,7 @@ class LoreParser:
             for match in PLACE_PATTERN.finditer(text):
                 replacement = replace_match(match, phase=1)
                 new_text = new_text.replace(match.group(0), str(replacement), 1)
-            if new_text == text: # 如果文本没有变化，跳出循环
+            if new_text == text:  # 如果文本没有变化，跳出循环
                 break
             text = new_text
 
@@ -382,21 +381,36 @@ class LoreParser:
         """
         result = LoreResult()
         triged_lis: set[str] = set()
+        trigger_count: dict[str, int] = {}
         # 更新真实世界的空闲时间
         self._real_idle["before"] = self._real_idle["after"]
         self._real_idle["after"] = datetime.now()
 
         # 处理所有触发器
         for trigger in self._triggers:
+            # 检查触发次数限制
+            if trigger.max_trig != -1:
+                current_count = trigger_count.get(trigger.name, 0)
+                if current_count >= trigger.max_trig:
+                    continue  # 跳过已达到最大触发次数的触发器
+
             # 特殊处理监听器类型触发器，确保每个只触发一次
             if trigger.type == "listener":
                 if trigger.name in triged_lis:
                     continue
                 else:
                     triged_lis.add(trigger.name)
-            # 处理当前触发器, 如果返回 False，则停止处理下一个触发器
-            if not self._process_trigger(trigger, self.messages, result):
-                break
+
+            # 处理当前触发器
+            if self._can_trigger(trigger, self.messages):
+                # 增加触发次数计数
+                trigger_count[trigger.name] = trigger_count.get(trigger.name, 0) + 1
+
+                # 处理触发器, 如果返回 False，则停止处理下一个触发器
+                if not self._process_trigger(
+                    trigger, self.messages, result, skip_chk=True
+                ):
+                    break
 
         # 处理作者注释
         for note in self._notes:

@@ -1,7 +1,11 @@
 import random
 import re
+from typing import TYPE_CHECKING
 
 from astrbot.api import logger
+
+if TYPE_CHECKING:
+    from ..parser import LoreParser
 
 # 骰子表示法的正则表达式
 DICE_PATTERN = re.compile(r"([+-]?\d*d\d+(?:[kubrtl]\d+|adv|dis)?)|([+-]?\d+)")
@@ -12,13 +16,13 @@ DIS_PATTERN = re.compile(r"(\d*)d(\d+)dis")
 class RandomHandler:
     """随机数处理器类，用于处理各种随机数生成操作"""
 
-    def __init__(self, parser):
+    def __init__(self, parser: "LoreParser"):
         """初始化随机数处理器
 
         Args:
             parser: 解析器实例，用于访问解析上下文
         """
-        self.parser = parser
+        self.parser: "LoreParser" = parser
 
     def handle_random_oper(self, args: list[str]) -> str:
         """处理随机数相关操作

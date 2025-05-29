@@ -1,16 +1,19 @@
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..parser import LoreParser
 
 
 class VarHandler:
     """变量处理器类，用于管理和操作不同作用域的变量"""
 
-    def __init__(self, parser):
+    def __init__(self, parser: "LoreParser"):
         """初始化变量处理器
 
         Args:
             parser: 解析器实例，用于解析占位符和存储变量数据
         """
-        self.parser = parser
+        self.parser: "LoreParser" = parser
 
     def _get_scope_key(self, scope: str) -> str:
         """获取作用域键

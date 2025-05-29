@@ -1,19 +1,24 @@
 import json
 import os
 import re
+from typing import TYPE_CHECKING
+
 from astrbot.api import logger
+
+if TYPE_CHECKING:
+    from ..parser import LoreParser
 
 
 class SaveHandler:
     """保存处理器类，用于处理保存和加载操作"""
 
-    def __init__(self, parser):
+    def __init__(self, parser: "LoreParser"):
         """初始化保存处理器
 
         Args:
             parser: 解析器实例，用于访问和修改变量数据
         """
-        self.parser = parser
+        self.parser: "LoreParser" = parser
         self.data_path = os.path.join(os.getcwd(), "data", "lorebook_lite_saves")
         os.makedirs(
             self.data_path, exist_ok=True
