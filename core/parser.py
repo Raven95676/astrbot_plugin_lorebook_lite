@@ -41,6 +41,7 @@ class LoreParser:
         "_random_handler",
         "_logic_handler",
         "_save_handler",
+        "trigger_count",
     )
 
     def __init__(self, lorebook: dict[str, Any], scan_depth: int = 1):
@@ -119,6 +120,9 @@ class LoreParser:
         self._random_handler = RandomHandler(self)
         self._logic_handler = LogicHandler(self)
         self._save_handler = SaveHandler(self)
+
+        # 初始化触发器计数器
+        self.trigger_count: dict[str, int] = {}
 
     def __str__(self) -> str:
         """返回解析器的字符串表示"""
@@ -370,6 +374,10 @@ class LoreParser:
 
         return not trigger.block if can_trigger else True
 
+    def reset_trigger_count(self) -> None:
+        """重置所有触发器的计数器"""
+        self.trigger_count.clear()
+
     def process_chat(self) -> LoreResult:
         """处理聊天消息，应用所有适用的触发器和注释
 
@@ -381,7 +389,6 @@ class LoreParser:
         """
         result = LoreResult()
         triged_lis: set[str] = set()
-        trigger_count: dict[str, int] = {}
         # 更新真实世界的空闲时间
         self._real_idle["before"] = self._real_idle["after"]
         self._real_idle["after"] = datetime.now()
@@ -390,7 +397,7 @@ class LoreParser:
         for trigger in self._triggers:
             # 检查触发次数限制
             if trigger.max_trig != -1:
-                current_count = trigger_count.get(trigger.name, 0)
+                current_count = self.trigger_count.get(trigger.name, 0)
                 if current_count >= trigger.max_trig:
                     continue  # 跳过已达到最大触发次数的触发器
 
@@ -404,7 +411,9 @@ class LoreParser:
             # 处理当前触发器
             if self._can_trigger(trigger, self.messages):
                 # 增加触发次数计数
-                trigger_count[trigger.name] = trigger_count.get(trigger.name, 0) + 1
+                self.trigger_count[trigger.name] = (
+                    self.trigger_count.get(trigger.name, 0) + 1
+                )
 
                 # 处理触发器, 如果返回 False，则停止处理下一个触发器
                 if not self._process_trigger(

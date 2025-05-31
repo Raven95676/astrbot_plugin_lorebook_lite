@@ -15,7 +15,7 @@ from .core._types import LoreResult  # type: ignore
 from .core.parser import LoreParser  # type: ignore
 
 
-@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.7")
+@register("astrbot_plugin_lorebook_lite", "Raven95676", "lorebook插件", "0.1.8")
 class LorePlugin(Star):
     """Lorebook插件，用于根据预设规则处理聊天内容并修改LLM请求"""
 
@@ -226,6 +226,10 @@ class LorePlugin(Star):
             msg = str(response.completion_text)
             msg_clean = " ".join(msg.split())
             self.lore_sessions[session_key].messages.append(msg_clean)
+
+        # 重置触发器计数器
+        if session_key in self.lore_sessions:
+            self.lore_sessions[session_key].reset_trigger_count()
 
         # 清除结果缓存并还原人格
         self._clear_session_results(session_key)
